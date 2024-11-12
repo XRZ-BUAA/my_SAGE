@@ -7,7 +7,11 @@ import torch
 from tqdm import tqdm
 from collections import Counter
 
-import utils.utils_transform
+# import utils.utils_transform
+from utils.transform_tools import axis_angle_to_rotation_6d
+
+
+
 from utils.smplBody import BodyModel
 from utils.evaluate import evaluate_prediction, pred_metrics, gt_metrics, all_metrics, metrics_coeffs
 from diffusion_stage.parser_util import get_args, merge_file
@@ -136,7 +140,7 @@ def test_process(args=None, log_path=None, cur_epoch=None):
 
         seq_len = sample.shape[0]
         fullbody_res_aa = torch.zeros((seq_len * 22, 3)).to(sample.device)
-        fullbody_res = utils.utils_transform.aa2sixd(fullbody_res_aa).reshape(seq_len, 22, 6)
+        fullbody_res = axis_angle_to_rotation_6d(fullbody_res_aa).reshape(seq_len, 22, 6)
         fullbody_res[:, upper_body] = sample.reshape(seq_len, len(upper_body), 6)
         fullbody_res = fullbody_res.reshape(seq_len, 132)
         lower_mask_idx = [0, 1, 3, 4, 6, 7, 9, 10]

@@ -4,13 +4,19 @@ import random
 import numpy as np
 import torch
 from tqdm import tqdm
-from utils import utils_transform
+# from utils import utils_transform
 from utils.metrics import get_metric_function
+
+from utils.transform_tools import rotation_6d_to_axis_angle
+
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 from VQVAE.parser_util import get_args
 from VQVAE.transformer_vqvae import TransformerVQVAE
 from utils.smplBody import BodyModel
+
+
+
 
 lower_body = [0, 1, 2, 4, 5, 7, 8, 10, 11]
 upper_body = [0, 3, 6, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
@@ -110,7 +116,7 @@ def evaluate_prediction(args, metrics, sample, body_model, head_motion, body_par
     motion_pred = sample.squeeze().cuda()  # (N, 132)
     # Get the  prediction from the model
     model_rot_input = (  # (N, 66)
-        utils_transform.sixd2aa(motion_pred.reshape(-1, 6).detach()).reshape(motion_pred.shape[0], -1).float()
+        rotation_6d_to_axis_angle(motion_pred.reshape(-1, 6).detach()).reshape(motion_pred.shape[0], -1).float()
     )
     for k, v in body_param.items():
         body_param[k] = v.squeeze().cuda()
@@ -277,6 +283,8 @@ def test_process():
     print("Metrics for the ground truth")
     for metric in gt_metrics:
         print(metric, log[metric] / len(dataset) * metrics_coeffs[metric])
+
+    return log
 
 
 if __name__ == "__main__":

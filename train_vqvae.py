@@ -8,7 +8,9 @@ from tqdm import tqdm
 import torch.multiprocessing as mp
 
 from torch.utils.tensorboard import SummaryWriter
-from utils import utils_transform
+# from utils import utils_transform
+
+from utils.transform_tools import rotation_6d_to_axis_angle
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
@@ -18,8 +20,28 @@ from VQVAE.transformer_vqvae import TransformerVQVAE
 from utils.smplBody import BodyModel
 from test_vqvae import test_process
 
+import pandas as pd
+
 lower_body = [0, 1, 2, 4, 5, 7, 8, 10, 11]
 upper_body = [0, 3, 6, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+
+pred_metrics = [
+    "mpjre",
+    "upperre",
+    "lowerre",
+    "rootre",
+    "mpjpe",
+    "mpjve",
+    "handpe",
+    "upperpe",
+    "lowerpe",
+    "rootpe",
+    "pred_jitter",
+]
+gt_metrics = [
+    "gt_jitter",
+]
+all_metrics = pred_metrics + gt_metrics
 
 
 def loss_function(args, recover_6d, motion, loss_z, bodymodel, gt_pos, body_part):
@@ -30,8 +52,8 @@ def loss_function(args, recover_6d, motion, loss_z, bodymodel, gt_pos, body_part
     gt = motion.reshape(bs, -1, 6)
     pred_temp = torch.zeros((bs, 22, 3), device="cuda")
     gt_temp = torch.zeros((bs, 22, 3), device="cuda")
-    pred_aa = utils_transform.sixd2aa(recover, batch=True)
-    gt_aa = utils_transform.sixd2aa(gt, batch=True)
+    pred_aa = rotation_6d_to_axis_angle(recover)
+    gt_aa = rotation_6d_to_axis_angle(gt)
     pred_temp[:, body_part, :] = pred_aa
     gt_temp[:, body_part, :] = gt_aa
     pred_temp = pred_temp.flatten(1, 2)
@@ -86,8 +108,11 @@ def loss_function(args, recover_6d, motion, loss_z, bodymodel, gt_pos, body_part
     return loss
 
 
-def save_checkpoint(states, output_dir):
-    checkpoint_file = os.path.join(output_dir, "checkpoint.pth.tar")
+def save_checkpoint(states, output_dir, epoch=None):
+    checkpoint_file = os.path.join(
+        output_dir, "checkpoint.pth.tar" if epoch is None \
+        else f"checkpoint_{epoch:02d}.pth.tar"
+        )
     torch.save(states, checkpoint_file)
     if True:
         torch.save(
@@ -106,6 +131,12 @@ def do_train(args, model, train_dataloader, body_part):
     writer = SummaryWriter(args.LOSS_RECORD_PATH)
     print(f"loss record save to {args.LOSS_RECORD_PATH}")
     global_step = 0
+
+    if not os.path.exists(args.LOG_DIR):
+        os.makedirs(args.LOG_DIR)
+    log_file = os.path.join(args.LOG_DIR, 'metrics.csv')
+    metrics = []
+
     ########## From XRZ  ##########
     
     begin_epoch = 0
@@ -174,9 +205,12 @@ def do_train(args, model, train_dataloader, body_part):
             'state_dict': model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'global_step': global_step, # From XRZ
-        }, output_dir)
+        }, output_dir, epoch)
 
-        test_process()
+        log = test_process()
+        log['Epoch'] = epoch
+        metrics.append(log)
+        pd.DataFrame(metrics).to_csv(log_file, index=False)
         train_dataloader.close()
 
 
