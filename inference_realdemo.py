@@ -74,7 +74,8 @@ def test_process(args=None, log_path=None, cur_epoch=None):
     random.seed(args.SEED)
     np.random.seed(args.SEED)
     torch.manual_seed(args.SEED)
-    body_model = BodyModel(args.SUPPORT_DIR).to(device)
+    print("USE OURS: ", hasattr(args, 'USE_OURS') and args.USE_OURS)
+    body_model = BodyModel(args.SUPPORT_DIR, smplx=hasattr(args, 'USE_OURS') and args.USE_OURS).to(device)
 
     print("Loading dataset...")
     filename_list, all_info = load_data(

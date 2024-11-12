@@ -54,7 +54,7 @@ def do_train(args, diff_model_upper, diff_model_lower, vq_model_upper, vq_model_
     accelerator = Accelerator(mixed_precision='fp16')
 
     support_dir = 'body_models'
-    body_model = BodyModel(support_dir).to(device)
+    body_model = BodyModel(support_dir, hasattr(args, 'USE_OURS') and args.USE_OURS).to(device)
 
     upper_vq_dir = args.UPPER_VQ_DIR
     vqvae_upper_file = os.path.join(upper_vq_dir, 'best.pth.tar')

@@ -15,6 +15,7 @@ def get_args():
     print(f"using config {args.cfg}")
     cfg = CN(new_allowed=True)
     cfg.merge_from_file(args.cfg)
-    name = args.cfg.split('/')[1].split('.')[0]
-    cfg.SAVE_DIR = os.path.join("outputs", name)
+    if not hasattr(cfg, 'SAVE_DIR') or cfg.SAVE_DIR is None:
+        name = args.cfg.split('/')[1].split('.')[0]
+        cfg.SAVE_DIR = os.path.join("outputs", name)
     return cfg

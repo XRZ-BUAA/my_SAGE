@@ -8,7 +8,7 @@ import datetime
 # os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
 from diffusion_stage.parser_util import get_args, merge_file
-from dataloader.dataloader import get_dataloader, load_data, TrainDataset
+from dataloader.dataloader import get_dataloader
 from VQVAE.transformer_vqvae import TransformerVQVAE
 from diffusion_stage.wrap_model import MotionDiffusion
 from diffusion_stage.do_train_decoder import do_train
@@ -19,16 +19,14 @@ upper_body = [0, 3, 6, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 
 
 def main():
-    cfg_args = get_args()
-    cfg_args.cfg = 'config_decoder/decoder.yaml'
-    args = merge_file(cfg_args)
-    name = cfg_args.cfg.split('/')[-1].split('.')[0]  # 输出保存地址
-    args.SAVE_DIR = os.path.join("outputs_new", name)
-
+    args = get_args()
+    print("torch version: ", torch.__version__)
     torch.backends.cudnn.benchmark = False
     random.seed(args.SEED)
     np.random.seed(args.SEED)
     torch.manual_seed(args.SEED)
+
+    print("USE OURS", hasattr(args, 'USE_OURS') and args.USE_OURS)
 
     if args.SAVE_DIR is None:
         raise FileNotFoundError("save_dir was not specified.")
@@ -41,12 +39,20 @@ def main():
     timestamp = time.time()
     dt = datetime.datetime.fromtimestamp(timestamp)
     formatted_dt = dt.strftime("%Y%m%d_%H%M")
-    log_path = os.path.join(output_dir, f"{name}_{formatted_dt}.log")
+    log_path = os.path.join(output_dir, f"{args.name}_{formatted_dt}.log")
     with open(log_path, 'w') as f:
         f.write(str(args) + '\n')
         print(f"Args saving to {log_path}")
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"use device: {device}")
+
     print("creating data loader...")
+    if hasattr(args, 'USE_OURS') and args.USE_OURS:
+        from dataloader.dataloader_our_wrapper import load_data, TrainDataset
+    else:
+        from dataloader.dataloader import load_data, TrainDataset
+
     motions, sparses, all_info = load_data(
         args.DATASET_PATH,
         "train",
@@ -66,7 +72,6 @@ def main():
     print("creating model...")
 
     print("creating model and diffusion...")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     num_gpus = torch.cuda.device_count()
     args.num_workers = args.NUM_WORKERS * num_gpus
 

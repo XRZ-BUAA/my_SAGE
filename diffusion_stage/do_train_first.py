@@ -52,7 +52,7 @@ def do_train(args, model, vq_model_upper, dataloader, log_path):
     model, optimizer, dataloader, lr_scheduler, vq_model_upper = accelerator.prepare(
         model, optimizer, dataloader, lr_scheduler, vq_model_upper)
 
-    for epoch in range(begin_epoch, 51):
+    for epoch in range(begin_epoch, args.EPOCH):
         tqdm.write(f"Starting epoch {epoch}")
         tqdm.write(f"current lr:{lr_scheduler.get_last_lr()}")
         train_dataloader = tqdm(dataloader, dynamic_ncols=True)

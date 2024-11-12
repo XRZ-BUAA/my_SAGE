@@ -9,7 +9,6 @@ from utils.metrics import get_metric_function
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 from VQVAE.parser_util import get_args
-from dataloader.dataloader import load_data, TestDataset
 from VQVAE.transformer_vqvae import TransformerVQVAE
 from utils.smplBody import BodyModel
 
@@ -211,9 +210,17 @@ def test_process():
     np.random.seed(args.SEED)
     torch.manual_seed(args.SEED)
 
+    print("USE OURS: ", hasattr(args, 'USE_OURS') and args.USE_OURS)
+
     fps = args.FPS  # AMASS dataset requires 60 frames per second
-    body_model = BodyModel(args.SUPPORT_DIR).to(device)
+    body_model = BodyModel(args.SUPPORT_DIR, smplx=hasattr(args, 'USE_OURS') and args.USE_OURS).to(device)
     print("Loading dataset...")
+
+    if hasattr(args, 'USE_OURS') and args.USE_OURS:
+        from dataloader.dataloader_our_wrapper import load_data, TestDataset
+    else:
+        from dataloader.dataloader import load_data, TestDataset
+
     filename_list, all_info = load_data(
         args.DATASET_PATH,
         "test",

@@ -45,10 +45,11 @@ def calc_fk_loss(body_model, recover, gt, gt_pos):
 def do_train(args, diff_model_upper, diff_model_lower, vq_model_upper, vq_model_lower, decoder_model, dataloader,
              log_path):
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Do train, use device: {device}")
     accelerator = Accelerator(mixed_precision='fp16')
 
     support_dir = 'body_models'
-    body_model = BodyModel(support_dir).to(device)
+    body_model = BodyModel(support_dir, smplx=hasattr(args, 'USE_OURS') and args.USE_OURS).to(device)
 
     upper_vq_dir = args.UPPER_VQ_DIR
     vqvae_upper_file = os.path.join(upper_vq_dir, 'best.pth.tar')
@@ -181,7 +182,7 @@ def do_train(args, diff_model_upper, diff_model_lower, vq_model_upper, vq_model_
             'lower_state_dict': diff_model_lower.state_dict(),
             'decoder_state_dict': decoder_model.state_dict(),
             'optimizer': optimizer.state_dict(),
-        }, output_dir)
+        }, output_dir, epoch)
         save_best({
             'epoch': epoch,
             'upper_state_dict': diff_model_upper.state_dict(),
@@ -192,8 +193,8 @@ def do_train(args, diff_model_upper, diff_model_lower, vq_model_upper, vq_model_
         train_dataloader.close()
 
 
-def save_checkpoint(states, output_dir):
-    checkpoint_file = os.path.join(output_dir, "checkpoint.pth.tar")
+def save_checkpoint(states, output_dir, epoch = -1):
+    checkpoint_file = os.path.join(output_dir, "checkpoint.pth.tar" if epoch == -1 else f"{epoch:04d}.pth.tar")
     torch.save(states, checkpoint_file)
 
 

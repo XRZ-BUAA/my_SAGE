@@ -6,12 +6,14 @@ import torch
 from torch import optim
 from tqdm import tqdm
 import torch.multiprocessing as mp
+
+from torch.utils.tensorboard import SummaryWriter
 from utils import utils_transform
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
 from VQVAE.parser_util import get_args
-from dataloader.dataloader import get_dataloader, load_data, TrainDataset
+from dataloader.dataloader import get_dataloader
 from VQVAE.transformer_vqvae import TransformerVQVAE
 from utils.smplBody import BodyModel
 from test_vqvae import test_process
@@ -57,6 +59,10 @@ def loss_function(args, recover_6d, motion, loss_z, bodymodel, gt_pos, body_part
         print("Fail to recognize the body part!")
         return
 
+    ########## From XRZ  ##########
+    rec_root = 0.0
+    ########## From XRZ  ##########
+    
     if args.ROOTLOSS:
         rec_root = loss_func(recover[:, 0], gt[:, 0]).mean()
         rec_other = loss_func(recover[:, 1:], gt[:, 1:]).mean()
@@ -74,7 +80,8 @@ def loss_function(args, recover_6d, motion, loss_z, bodymodel, gt_pos, body_part
         "vq_loss": vq_loss,
         "recons_loss": recons_loss,
         "fk_loss": fk_loss,
-        "hand_align_loss": hand_align_loss
+        "hand_align_loss": hand_align_loss,
+        "root_loss": rec_root
     }
     return loss
 
@@ -91,6 +98,16 @@ def save_checkpoint(states, output_dir):
 
 def do_train(args, model, train_dataloader, body_part):
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"train on: {device}")
+    
+    ########## From XRZ  ##########
+    if not os.path.exists(args.LOSS_RECORD_PATH):
+        os.makedirs(args.LOSS_RECORD_PATH)
+    writer = SummaryWriter(args.LOSS_RECORD_PATH)
+    print(f"loss record save to {args.LOSS_RECORD_PATH}")
+    global_step = 0
+    ########## From XRZ  ##########
+    
     begin_epoch = 0
     output_dir = args.SAVE_DIR
     if not os.path.exists(output_dir):
@@ -102,13 +119,14 @@ def do_train(args, model, train_dataloader, body_part):
         print("=> loading checkpoint '{}'".format(checkpoint_file))
         checkpoint = torch.load(checkpoint_file, map_location=lambda storage, loc: storage)
         begin_epoch = checkpoint['epoch']
+        global_step = checkpoint['global_step'] # From XRZ
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         print("=> loaded checkpoint '{}' (epoch {})".format(checkpoint_file, checkpoint['epoch']))
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, args.MILESTONES, gamma=1 / 4, last_epoch=begin_epoch if begin_epoch else -1)
 
     support_dir = 'body_models'
-    body_model = BodyModel(support_dir).to(device)
+    body_model = BodyModel(support_dir, smplx=hasattr(args, 'USE_OURS') and args.USE_OURS).to(device)
     model.train()
 
     num_joints = len(body_part)
@@ -137,13 +155,25 @@ def do_train(args, model, train_dataloader, body_part):
             loss["loss"].backward()
             optimizer.step()
             train_dataloader.set_description(f"e:{epoch},rc:{loss['recons_loss']:.2e},vq:{loss['vq_loss']:.2e},"
-                                             f"fk:{loss['fk_loss']:.2e},hd:{loss['hand_align_loss']:.2e}")
+                                             f"fk:{loss['fk_loss']:.2e},hd:{loss['hand_align_loss']:.2e},"
+                                             f"rt:{loss['root_loss']:.2e}"  # From XRZ
+                                             )
 
+            ########## From XRZ  ##########
+            for k, v in loss.items():
+                # if v.isinstance(torch.tensor):
+                if type(v) == torch.Tensor:
+                    writer.add_scalar(f"Loss/{k}", v.detach().cpu().item(), global_step)
+                    
+            global_step += 1
+            ########## From XRZ  ##########
+            
         scheduler.step()
         save_checkpoint({
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),
             'optimizer': optimizer.state_dict(),
+            'global_step': global_step, # From XRZ
         }, output_dir)
 
         test_process()
@@ -156,10 +186,18 @@ def main():
     random.seed(args.SEED)
     np.random.seed(args.SEED)
     torch.manual_seed(args.SEED)
+
+    print("USE OURS", hasattr(args, 'USE_OURS') and args.USE_OURS)
+
     if args.SAVE_DIR is None:
         raise FileNotFoundError("save_dir was not specified.")
     elif not os.path.exists(args.SAVE_DIR):
         os.makedirs(args.SAVE_DIR)
+
+    if hasattr(args, 'USE_OURS') and args.USE_OURS:
+        from dataloader.dataloader_our_wrapper import load_data, TrainDataset
+    else:
+        from dataloader.dataloader import load_data, TrainDataset
 
     motions, sparses, all_info = load_data(
         args.DATASET_PATH,

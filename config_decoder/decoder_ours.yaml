@@ -1,0 +1,102 @@
+# base
+CUDA: True
+DEVICE: 0
+SEED: 10
+
+# dataset
+USE_OURS: true
+DATASET_PATH: "./datasets"
+# DATASET_PATH: "./dataset/"
+# PROTOCOL: "1_small_dataset"  # ['1_small_dataset', '2_full_dataset', 'real', 'randomsplit_0']
+PROTOCOL: "both"
+SUPPORT_DIR: "body_models"
+# UPPER_VQ_DIR: "ckpt/our_data_both/upper_vqvae"
+# LOWER_VQ_DIR: "ckpt/our_data_both/lower_vqvae"
+# UPPER_DIF_DIR: "ckpt/our_data_both/diff_1st"
+# LOWER_DIF_DIR: "ckpt/our_data_both/diff_2nd"
+
+UPPER_VQ_DIR: "ckpt/weight_full_rand0/upper_vqvae_full_rand0"
+LOWER_VQ_DIR: "ckpt/weight_full_rand0/lower_vqvae_full_rand0"
+UPPER_DIF_DIR: "ckpt/weight_full_rand0/diff_1st"
+LOWER_DIF_DIR: "ckpt/weight_full_rand0/diff_2nd"
+
+# SAVE_DIR: "ckpt/our_data_both/decoder"
+SAVE_DIR: "ckpt/weight_full_rand0/decoder_full_rand0"
+
+SPARSE_DIM: 54
+MOTION_NFEAT: 132
+INPUT_MOTION_LENGTH: 20
+TRAIN_DATASET_REPEAT_TIMES: 500
+OVERLAPPING_TEST: False
+MASK_TRAINING: True
+MASK_RATIO: 0.5
+LAST_FRAME: True
+LOSS_FUNC: "l1"
+
+
+# Training related config
+BATCH_SIZE: 300  # batch size during training
+NUM_PER_BATCH: 1024  # batch size during inference
+NUM_WORKERS: 6
+EPOCH: 10
+LR_1: 1e-4
+LR_2: 8e-5
+WEIGHT_DECAY: 1e-4
+EPOCH_DECODER: 6
+EPOCH_ALL: 10
+
+GAMMA: 0.2
+FPS: 30
+VIS: False
+SAVE_GT: False
+
+# GLTF: True
+# GLTF_GT: True
+BVH: True
+BVH_GT: True
+BVH_RATIO: 0.3
+VIS_DIR: "/data/sxh/xrz/projects/presage_vis"
+SMPLX_DIR: "body_models"
+
+VQVAE:
+  # n_layers: [4, 4]
+  n_layers: [6, 6]
+  hid_dim: 256
+  heads: 4
+  dropout: 0.
+  n_codebook: 8
+  n_e: 512
+  e_dim: 384
+  beta: 1.0
+
+DECODER:
+  n_layers: 4
+  hid_dim: 256
+  heads: 4
+  e_dim: 384
+  loss_weight:
+    root: 0.02
+    other_joints: 1.0
+    body_fk: 5.0
+
+
+DIFFUSION:
+  mask_traing: True
+  mask_num: 2
+  layers_upper: 12
+  layers_lower: 12
+  init_noise_sigma: 0.01
+  scheduler:
+    target: diffusers.DDIMScheduler
+    num_inference_timesteps: 5
+    eta: 0.0
+    params:
+      num_train_timesteps: 1000
+      beta_start: 0.00085
+      beta_end: 0.012
+      beta_schedule: 'squaredcos_cap_v2' # Optional: ['linear', 'scaled_linear', 'squaredcos_cap_v2']
+      prediction_type: 'sample'
+      clip_sample: false # clip sample to -1~1
+      #for ddim
+      set_alpha_to_one: false
+      steps_offset: 0

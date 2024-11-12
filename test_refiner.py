@@ -11,7 +11,6 @@ from tqdm import tqdm
 from utils.evaluate import evaluate_prediction, pred_metrics, gt_metrics, all_metrics, metrics_coeffs
 from utils.smplBody import BodyModel
 from diffusion_stage.parser_util import get_args, merge_file
-from dataloader.dataloader_refiner import load_data, TestDataset
 from VQVAE.transformer_vqvae import TransformerVQVAE
 from diffusion_stage.wrap_model import MotionDiffusion
 from diffusion_stage.transformer_decoder import TransformerDecoder
@@ -70,18 +69,23 @@ def overlapping_test_simplify(args, data, upper_model, model, vq_model_upper, vq
 
 def test_process(args=None, log_path=None, cur_epoch=None):
     if args is None:
-        cfg_args = get_args()
+        args = get_args()
         # cfg_args.cfg = 'config_decoder/refiner_full_rand0.yaml'
-        args = merge_file(cfg_args)
-        name = cfg_args.cfg.split('/')[-1].split('.')[0]  # output directory
-        args.SAVE_DIR = os.path.join("outputs", name)
+
+    print("USE OURS: ", hasattr(args, 'USE_OURS') and args.USE_OURS)
 
     torch.backends.cudnn.benchmark = False
     random.seed(args.SEED)
     np.random.seed(args.SEED)
     torch.manual_seed(args.SEED)
     fps = args.FPS  # AMASS dataset requires 60 frames per second
-    body_model = BodyModel(args.SUPPORT_DIR).to(device)
+    body_model = BodyModel(args.SUPPORT_DIR, smplx=hasattr(args, 'USE_OURS') and args.USE_OURS).to(device)
+
+    if hasattr(args, 'USE_OURS') and args.USE_OURS:
+        from dataloader.dataloader_our_wrapper import load_data
+        from dataloader.dataloader_refiner import TestDataset_Our as TestDataset
+    else:
+        from dataloader.dataloader_refiner import load_data, TestDataset
 
     print("Loading dataset...")
     filename_list, all_info = load_data(

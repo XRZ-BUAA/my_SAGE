@@ -12,7 +12,14 @@ def get_args():
                         default="",
                         type=str)
     args = parser.parse_args()
-    return args
+    print(f"using config {args.cfg}")
+    cfg = CN(new_allowed=True)
+    cfg.merge_from_file(args.cfg)
+    cfg.name = args.cfg.split('/')[1].split('.')[0]
+    if not hasattr(cfg, 'SAVE_DIR') or cfg.SAVE_DIR is None:
+        cfg.SAVE_DIR = os.path.join("outputs", cfg.name)
+    
+    return cfg
 
 
 def merge_file(args):
