@@ -31,9 +31,9 @@ LOSS:
   hand_align_loss: 5
 
 # SAVE_DIR: ckpt/our_data_both/upper_vqvae
-LOSS_RECORD_PATH: "../mysage_train_results/upper_vqvae_xrz1112/loss"
-SAVE_DIR : "../mysage_train_results/upper_vqvae_xrz1112/ckpt"
-LOG_DIR: "../mysage_train_results/upper_vqvae_xrz1112/log"
+LOSS_RECORD_PATH: "train_results/upper_vqvae_try1112/loss"
+SAVE_DIR : "train_results/upper_vqvae_try1112/ckpt"
+LOG_DIR: "train_results/upper_vqvae_try1112/log"
 
 # Testing
 OVERLAPPING_TEST: False

@@ -4,7 +4,8 @@ import random
 import numpy as np
 import torch
 from tqdm import tqdm
-from utils import utils_transform
+# from utils import utils_transform
+from utils.transform_tools import rotation_6d_to_axis_angle
 from utils.metrics import get_metric_function
 
 import smplx
@@ -142,10 +143,12 @@ def evaluate_prediction(args, metrics, sample, gt_data, body_model, head_motion,
 
     # Get the  prediction from the model
     model_rot_input = (  # (N, 66)
-        utils_transform.sixd2aa(motion_pred.reshape(-1, 6).detach()).reshape(motion_pred.shape[0], -1).float()
+        # utils_transform.sixd2aa(motion_pred.reshape(-1, 6).detach()).reshape(motion_pred.shape[0], -1).float()
+        rotation_6d_to_axis_angle(motion_pred.reshape(-1, 6).detach()).reshape(motion_pred.shape[0], -1).float()
     )
     gt_motion_aa = (
-        utils_transform.sixd2aa(gt_motion.reshape(-1, 6).detach()).reshape(gt_motion.shape[0], -1).float()
+        # utils_transform.sixd2aa(gt_motion.reshape(-1, 6).detach()).reshape(gt_motion.shape[0], -1).float()
+        rotation_6d_to_axis_angle(gt_motion.reshape(-1, 6).detach()).reshape(gt_motion.shape[0], -1).float()
     )
     assert use_body_part in ["upper", "lower", "full"]
     if use_body_part == "upper":

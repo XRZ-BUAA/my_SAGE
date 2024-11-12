@@ -245,6 +245,7 @@ def main():
         all_info,
         args.INPUT_MOTION_LENGTH,
         args.TRAIN_DATASET_REPEAT_TIMES,
+        # 100
     )
     train_dataloader = get_dataloader(
         train_dataset, "train", batch_size=args.BATCH_SIZE, num_workers=args.NUM_WORKERS

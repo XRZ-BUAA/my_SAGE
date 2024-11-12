@@ -136,7 +136,7 @@ def get_motion_list_wrapper(motion_lists):
 
 
 def get_data_stage1(dataset_path, split, protocol, **kwargs):
-    motion_list = get_path_stage1(dataset_path, split)
+    motion_list = get_path_stage1(dataset_path, split) # [:512]
     fnamelist = [
         '-'.join((i[:-len(Path(i).suffix)].split('/'))[-4:]) for i in motion_list
     ]
@@ -197,7 +197,7 @@ def get_motion_list_from_npydata_stage2(motion_npy:dict):
 def get_data_stage2(dataset_path, split, protocol, **kwargs):
     npypath = get_path_stage2(dataset_path, split)
     motion_npy = np.load(npypath, allow_pickle=True)
-    motion_list = get_motion_list_from_npydata_stage2(motion_npy)
+    motion_list = get_motion_list_from_npydata_stage2(motion_npy) # [:512]
     filenames = [f"test: {i}" for i in range(len(motion_list))]
     assert split in ['test', 'train', 'val']
     if split == 'test':

@@ -3,7 +3,8 @@ import os
 import math
 import smplx
 from utils import utils_visualize
-from utils import utils_transform
+# from utils import utils_transform
+from utils.transform_tools import rotation_6d_to_axis_angle
 from utils.metrics import get_metric_function
 from utils.utils_bvh import export_bvh
 
@@ -123,7 +124,7 @@ def evaluate_prediction(args, metrics, sample, body_model, head_motion, body_par
 
     # Get the  prediction from the model
     model_rot_input = (  # (N, 66)
-        utils_transform.sixd2aa(motion_pred.reshape(-1, 6).detach()).reshape(motion_pred.shape[0], -1).float()
+        rotation_6d_to_axis_angle(motion_pred.reshape(-1, 6).detach()).reshape(motion_pred.shape[0], -1).float()
     )
     assert use_body_part in ["upper", "lower", "full"]
     if use_body_part == "upper":

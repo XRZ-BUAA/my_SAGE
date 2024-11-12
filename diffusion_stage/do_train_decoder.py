@@ -5,7 +5,8 @@ from tqdm import tqdm
 from accelerate import Accelerator
 from test_decoder import test_process
 from utils.smplBody import BodyModel
-from utils import utils_transform
+# from utils import utils_transform
+from utils.transform_tools import rotation_6d_to_axis_angle
 
 lower_body = [0, 1, 2, 4, 5, 7, 8, 10, 11]
 upper_body = [0, 3, 6, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
@@ -14,8 +15,8 @@ upper_body = [0, 3, 6, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 def calc_fk_loss(body_model, recover, gt, gt_pos):
     recover = recover.reshape(-1, 22, 6)
     gt = gt.reshape(-1, 22, 6)
-    pred_aa = utils_transform.sixd2aa(recover, batch=True).flatten(1, 2)
-    gt_aa = utils_transform.sixd2aa(gt, batch=True).flatten(1, 2)
+    pred_aa = rotation_6d_to_axis_angle(recover).flatten(1, 2)
+    gt_aa = rotation_6d_to_axis_angle(gt).flatten(1, 2)
     pred_loc = body_model({
         "root_orient": pred_aa[:, :3],
         "pose_body": pred_aa[:, 3:]
