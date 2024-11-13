@@ -11,4 +11,4 @@ conda activate sage2
 cd /data/run01/scw6dwh/sxh/SAGE
 
 # 运行 Python 脚本
-python train_vqvae.py --cfg config_vqvae/lower_vqvae_our_1112.yaml
+python train_vqvae.py --cfg config_vqvae/lower_vqvae_our.yaml
